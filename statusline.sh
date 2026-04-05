@@ -1,4 +1,45 @@
 #!/bin/bash
+#
+# statusline.sh — A beautiful 3-line status bar for Claude Code CLI
+# Usage: echo '{"..."}' | bash statusline.sh [--format compact|ascii|bare]
+#        bash statusline.sh --init  (auto-configure Claude Code)
+#
+
+# ── CLI arguments ───────────────────────────────────────────────
+FORMAT="full"
+for arg in "$@"; do
+  case "$arg" in
+    --init)
+      # Auto-configure Claude Code settings
+      SETTINGS_DIR="$HOME/.claude"
+      SETTINGS_FILE="$SETTINGS_DIR/settings.json"
+      SCRIPT_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+
+      if [ ! -f "$SETTINGS_FILE" ]; then
+        mkdir -p "$SETTINGS_DIR" && echo '{"statusLine":{"type":"command","command":"bash '\"$SCRIPT_PATH\"'"}}' | jq '.' > "$SETTINGS_FILE"
+      else
+        jq '. + {"statusLine":{"type":"command","command":"bash \""'\"$SCRIPT_PATH\"'\""}}' "$SETTINGS_FILE" > "$SETTINGS_FILE.tmp" && mv "$SETTINGS_FILE.tmp" "$SETTINGS_FILE"
+      fi
+
+      echo "statusLine configured. Restart Claude Code to see your statusline."
+      exit 0
+      ;;
+    --format) ;;
+    compact|ascii|bare|full) FORMAT="$arg" ;;
+    --help|-h)
+      echo "Usage: echo '<json>' | bash statusline.sh [--format full|compact|ascii|bare]"
+      echo "       bash statusline.sh --init          Auto-configure Claude Code"
+      echo ""
+      echo "Formats:"
+      echo "  full     3-line detailed view (default)"
+      echo "  compact  Single condensed line"
+      echo "  ascii    3-line with ASCII characters only"
+      echo "  bare     Plain text, no colors"
+      exit 0
+      ;;
+  esac
+done
+
 input=$(cat)
 
 # ── Parse JSON ────────────────────────────────────────────────
@@ -14,71 +55,36 @@ VIM_MODE=$(echo "$input" | jq -r '.vim.mode // empty')
 AGENT=$(echo "$input" | jq -r '.agent.name // empty')
 VERSION=$(echo "$input" | jq -r '.version // empty')
 
-
-
-
-
-
 # Rate limits
 RATE_5H=$(echo "$input" | jq -r '.rate_limits.five_hour.used_percentage // empty')
 RATE_7D=$(echo "$input" | jq -r '.rate_limits.seven_day.used_percentage // empty')
 RESET_5H=$(echo "$input" | jq -r '.rate_limits.five_hour.resets_at // empty')
 RESET_7D=$(echo "$input" | jq -r '.rate_limits.seven_day.resets_at // empty')
 
-
-
-
-
-
-
-
-
-
 # Tokens
 TOTAL_IN_TOKENS=$(echo "$input" | jq -r '.context_window.total_input_tokens // empty')
 TOTAL_OUT_TOKENS=$(echo "$input" | jq -r '.context_window.total_output_tokens // empty')
-# API duration
 API_DURATION_MS=$(echo "$input" | jq -r '.cost.total_api_duration_ms // 0')
-
-
-
-
-
-
-
-
-
-
 
 CACHE_READ=$(echo "$input" | jq -r '.context_window.current_usage.cache_read_input_tokens // empty')
 CACHE_CREATE=$(echo "$input" | jq -r '.context_window.current_usage.cache_creation_input_tokens // empty')
 CUR_INPUT=$(echo "$input" | jq -r '.context_window.current_usage.input_tokens // empty')
 
-
-
-
-
-
-
-
-
-
-
-# API duration
-API_DURATION_MS=$(echo "$input" | jq -r '.cost.total_api_duration_ms // 0')
-
 # ── Colors ────────────────────────────────────────────────────
-RESET='\033[0m'; BOLD='\033[1m'; DIM='\033[2m'
-CYAN='\033[36m'; GREEN='\033[32m'; YELLOW='\033[33m'
-RED='\033[31m'; MAGENTA='\033[35m'; BLUE='\033[34m'
-WHITE='\033[37m'
+NOCOLOR=0
+[ "$FORMAT" = "bare" ] && NOCOLOR=1
+
+if [ "$NOCOLOR" -eq 0 ]; then
+  RESET='\033[0m'; BOLD='\033[1m'; DIM='\033[2m'
+  CYAN='\033[36m'; GREEN='\033[32m'; YELLOW='\033[33m'
+  RED='\033[31m'; MAGENTA='\033[35m'; BLUE='\033[34m'
+  WHITE='\033[37m'
+else
+  RESET=''; BOLD=''; DIM=''; CYAN=''; GREEN=''; YELLOW=''
+  RED=''; MAGENTA=''; BLUE=''; WHITE=''
+fi
 
 SEP="${DIM} | ${RESET}"
-
-
-
-
-
 
 # ── Helper: color by percentage ───────────────────────────────
 color_pct() {
@@ -88,57 +94,34 @@ color_pct() {
   else echo "$GREEN"; fi
 }
 
-
-
-
-
-
-
-
 # ── Helper: format duration from ms ───────────────────────────
 fmt_dur() {
   local ms=$1
   local total_sec=$(( ms / 1000 ))
   local h=$(( total_sec / 3600 ))
-  local m=$(( (total_sec % 3600) / 60 ))
+  local m=$(( (total_sec % 3600 ) / 60 ))
   local s=$(( total_sec % 60 ))
   if [ "$h" -gt 0 ]; then printf "%dh %02dm" "$h" "$m"
   elif [ "$m" -gt 0 ]; then printf "%dm %02ds" "$m" "$s"
   else printf "%ds" "$s"; fi
 }
 
-
-
-
-
-
-
-
-
-
-
-
-# ── Helper: format countdown from epoch ───────────────────────
+# ── Helper: countdown from epoch ──────────────────────
 fmt_countdown() {
   local reset_at=$1
   local now=$(date +%s)
   local diff=$(( reset_at - now ))
   if [ "$diff" -le 0 ]; then echo "now"; return; fi
   local h=$(( diff / 3600 ))
-  local m=$(( (diff % 3600) / 60 ))
+  local m=$(( (diff % 3600 ) / 60 ))
   printf "%dh %dm" "$h" "$m"
 }
-
-
-
-
-
 
 # ── Helper: format token count (K) ───────────────────────────
 fmt_tokens() {
   local t=$1
   if [ -z "$t" ] || [ "$t" = "null" ]; then echo "0"; return; fi
-  if [ "$t" -ge 1000000 ]; then
+  if [ "$t" -ge 100000 ]; then
     awk -v v="$t" 'BEGIN{printf "%.1fM", v/1000000}'
   elif [ "$t" -ge 1000 ]; then
     awk -v v="$t" 'BEGIN{printf "%.1fK", v/1000}'
@@ -147,10 +130,33 @@ fmt_tokens() {
   fi
 }
 
+# ── Compact mode ──────────────────────────────────────────────
+if [ "$FORMAT" = "compact" ]; then
+  BRANCH="$(git branch --show-current 2>/dev/null)"
+  COST_FMT=$(printf '$%.2f' "$COST")
+  DUR=$(fmt_dur "$DURATION_MS")
+  IN_FMT=$(fmt_tokens "$TOTAL_IN_TOKENS")
+  OUT_FMT=$(fmt_tokens "$TOTAL_OUT_TOKENS")
+
+  LINE=""
+  LINE="${CYAN}${BOLD}${MODEL}${RESET}"
+  [ -n "$BRANCH" ] && LINE="${LINE} ${DIM}(${BRANCH})${RESET}"
+  LINE="${LINE}${SEP}${YELLOW}${COST_FMT}${RESET}"
+  LINE="${LINE}${SEP}${DIM}${DUR}${RESET}"
+  LINE="${LINE}${SEP}${DIM}${PCT}%${RESET}"
+  [ -n "$LINES_ADD" ] && LINE="${LINE}${SEP}${GREEN}+${LINES_ADD}${RESET}"
+  [ -n "$LINES_DEL" ] && LINE="${LINE}${GREEN}-${LINES_DEL}${RESET}"
+  LINE="${LINE}${SEP}${DIM}in:${RESET}${CYAN}${IN_FMT}${RESET}${DIM}out:${RESET}${MAGENTA}${OUT_FMT}${RESET}"
+  [ -n "$AGENT" ] && LINE="${LINE}${SEP}${MAGENTA}${AGENT}${RESET}"
+
+  echo -e "$LINE"
+  exit 0
+fi
+
 # ── Context window size label ─────────────────────────────────
 CTX_LABEL=""
 if [ -n "$CTX_SIZE" ]; then
-  if [ "$CTX_SIZE" -ge 1000000 ]; then
+  if [ "$CTX_SIZE" -ge 100000 ]; then
     CTX_LABEL="${DIM}1M${RESET}"
   else
     CTX_LABEL="${DIM}200K${RESET}"
@@ -162,7 +168,7 @@ BRANCH=""
 git rev-parse --git-dir > /dev/null 2>&1 && BRANCH="$(git branch --show-current 2>/dev/null)"
 
 REPO_LINK="${DIR##*/}"
-REMOTE=$(git remote get-url origin 2>/dev/null | sed 's/git@github.com:/https:\/\/github.com\//' | sed 's/\.git$//')
+REMOTE=$(git remote get-url origin 2>/dev/null | sed 's|git@github.com:|https://github.com/|' | sed 's/\.git$//')
 if [ -n "$REMOTE" ]; then
   REPO_NAME=$(basename "$REMOTE")
   REPO_LINK=$(printf '%b' "\e]8;;${REMOTE}\a${REPO_NAME}\e]8;;\a")
@@ -173,8 +179,13 @@ BAR_COLOR=$(color_pct "$PCT")
 BAR_W=15
 FILLED=$((PCT * BAR_W / 100)); EMPTY=$((BAR_W - FILLED))
 BAR=""
-for i in $(seq 1 $FILLED); do BAR="${BAR}${BAR_COLOR}●${RESET}"; done
-for i in $(seq 1 $EMPTY); do BAR="${BAR}${DIM}●${RESET}"; done
+if [ "$FORMAT" = "ascii" ]; then
+  for i in $(seq 1 $FILLED); do BAR="${BAR}${BAR_COLOR}|${RESET}"; done
+  for i in $(seq 1 $EMPTY); do BAR="${BAR}${DIM}:${RESET}"; done
+else
+  for i in $(seq 1 $FILLED); do BAR="${BAR}${BAR_COLOR}●${RESET}"; done
+  for i in $(seq 1 $EMPTY); do BAR="${BAR}${DIM}·${RESET}"; done
+fi
 
 # ── Duration ──────────────────────────────────────────────────
 DUR=$(fmt_dur "$DURATION_MS")
@@ -218,7 +229,7 @@ if [ -n "$LINES_ADD" ] && [ "$LINES_ADD" != "0" ]; then
   LINES_PART="${GREEN}+${LINES_ADD}${RESET}"
 fi
 if [ -n "$LINES_DEL" ] && [ "$LINES_DEL" != "0" ]; then
-  [ -n "$LINES_PART" ] && LINES_PART="${LINES_PART} ${RED}-${LINES_DEL}${RESET}" || LINES_PART="${RED}-${LINES_DEL}${RESET}"
+  [ -n "$LINES_PART" ] && LINES_PART="${LINES_PART}${RED}-${LINES_DEL}${RESET}" || LINES_PART="${RED}-${LINES_DEL}${RESET}"
 fi
 [ -n "$LINES_PART" ] && L1="${L1}${SEP}${LINES_PART} ${DIM}lines${RESET}"
 
@@ -235,14 +246,11 @@ fi
 }
 
 # ══════════════════════════════════════════════════════════════
-# LINE 2: Context bar + Cost + Duration + Rate limits (5h & 7d with countdown)
+# LINE 2: Context bar + Cost + Duration + Rate limits
 # ══════════════════════════════════════════════════════════════
 COST_FMT=$(printf '$%.2f' "$COST")
 L2="${BAR} ${DIM}${PCT}%${RESET}${SEP}${YELLOW}${COST_FMT}${RESET}${SEP}${DIM}${DUR}${RESET}"
 
-
-
-# Rate limits: 5h percentage + countdown, 7d percentage + countdown
 if [ -n "$RATE_5H" ]; then
   R5_INT=$(printf "%.0f" "$RATE_5H")
   R5_C=$(color_pct "$R5_INT")
@@ -252,13 +260,6 @@ if [ -n "$RATE_5H" ]; then
     L2="${L2} ${DIM}(${R5_CD})${RESET}"
   fi
 fi
-
-
-
-
-
-
-
 
 if [ -n "$RATE_7D" ]; then
   R7_INT=$(printf "%.0f" "$RATE_7D")
@@ -276,22 +277,19 @@ fi
 L3=""
 [ -n "$CACHE_HIT" ] && L3="${CACHE_HIT}"
 
-# Token counts (label first: in: 202.1K  out: 4.5K)
 IN_FMT=$(fmt_tokens "$TOTAL_IN_TOKENS")
 OUT_FMT=$(fmt_tokens "$TOTAL_OUT_TOKENS")
 TOKENS_PART="${DIM}in:${RESET} ${CYAN}${IN_FMT}${RESET} ${DIM}out:${RESET} ${MAGENTA}${OUT_FMT}${RESET}"
 [ -n "$L3" ] && L3="${L3}${SEP}${TOKENS_PART}" || L3="${TOKENS_PART}"
 
-# API wait time
 API_DUR=$(fmt_dur "$API_DURATION_MS")
 if [ "$DURATION_MS" -gt 0 ] && [ "$API_DURATION_MS" -gt 0 ]; then
   API_PCT=$((API_DURATION_MS * 100 / DURATION_MS))
-  L3="${L3}${SEP}${DIM}api wait${RESET} ${CYAN}${API_DUR}${RESET} ${DIM}(${API_PCT}%)${RESET}"
+  L3="${L3}${SEP}${DIM}api wait${RESET} ${CYAN}${API_DUR}${RESET} ${DIM}(${API_PCT}%)"
 else
   L3="${L3}${SEP}${DIM}api wait${RESET} ${CYAN}${API_DUR}${RESET}"
 fi
 
-# Current token detail
 CUR_IN_FMT=$(fmt_tokens "$CUR_INPUT")
 CACHE_R_FMT=$(fmt_tokens "$CACHE_READ")
 CACHE_C_FMT=$(fmt_tokens "$CACHE_CREATE")

@@ -1,22 +1,43 @@
 # Claude Code Statusline
 
-A beautiful, information-rich statusline script for [Claude Code](https://claude.ai/code) CLI.
+> A beautiful, information-rich statusline script for [Claude Code](https://claude.ai/code) CLI.
+>
+> [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+> [![bash](https://img.shields.io/badge/Shell-000000?style=flat&logo=gnu-bash&logoColor=white)](https://www.gnu.org/software/bash/)
+> [![jq](https://img.shields.io/badge/jq-required-green)](https://jqlang.org/)
+> [![Compact](https://img.shields.io/badge/Formats-Full%7CCompact%7CAscii%7CBare-blue)](#output-formats)
 
 Displays 3 lines of real-time session information:
 
 ```
-Claude 200K v2.1.92 | project (main) | +342 -87 lines | 3A | executor | NOR
-●●●●●●●●●●●●●●● 47% | $1.25 | 2m 05s | 5h 35% (2h 30m) | 7d 12% (5d 12h)
+Claude 200K v2.1.92 | project (main) | +342 -87 lines | executor | NOR
+●●●●●●●●●●○○○○○ 47% | $1.25 | 2m 05s | 5h 35% (2h 30m) | 7d 12% (5d 12h)
 cache 37% | in: 202.1K out: 45.0K | api wait 1m 35s (76%) | cur 12.5K in 8.3K read 1.2K write
 ```
 
-## Features
+## Features & Output Formats
 
-| Line | Content |
-|------|---------|
-| **Line 1** | Model name, context window size, version, repo name, git branch, lines added/removed, git file stats (Modified/Added/Deleted), active agent, vim mode |
-| **Line 2** | Context usage progress bar (color-coded), session cost, duration, 5-hour & 7-day rate limit usage with countdown timers |
-| **Line 3** | Cache hit rate, total input/output tokens, API wait time, current request token detail (input, cache read, cache write) |
+| Format | Command | Description |
+|--------|---------|-------------|
+| **Full** | (default) | 3-line detailed view with all metrics |
+| **Compact** | `--format compact` | Single condensed line for narrow terminals |
+| **ASCII** | `--format ascii` | 3-line view with pure ASCII characters (no Unicode) |
+| **Bare** | `--format bare` | 3-line plain text, no colors or escape sequences |
+
+```
+Full:
+Claude 200K (main) | +342 -87 lines | executor | NOR
+●●●●●●●●●○○○○○○ 47% | $1.25 | 2m 05s | 5h 35% | 7d 12%
+cache 37% | in: 202.1K out: 45.0K | api wait 1m 35s (76%)
+
+Compact:
+Claude (main) | $1.25 | 2m 05s | 47% | +342 -87 | executor
+
+ASCII:
+Claude 200K (main) | +342 -87 lines | executor | NOR
+|||||||:::::::: 47% | $1.25 | 2m 05s | 5h 35% | 7d 12%
+cache 37% | in: 202.1K out: 45.0K | api wait 1m 35s (76%)
+```
 
 ### Color Coding
 
@@ -30,22 +51,34 @@ cache 37% | in: 202.1K out: 45.0K | api wait 1m 35s (76%) | cur 12.5K in 8.3K re
 - `2A` — 2 added/untracked files
 - `1D` — 1 deleted file
 
-## Prerequisites
+### Context Bar Progressions
 
-- `bash` (Git Bash on Windows)
-- `jq` — JSON parser (`choco install jq` on Windows)
-- `git` — for branch and file stats
-- `awk` — for token formatting (included in most systems)
+```
+Low usage (green):          ●●○○○○○○○○○○○○○ 15%
+Moderate usage (yellow):    ●●●●●●●○○○○○○○● 47%
+High usage (red):           ●●●●●●●●●●●●●●● 92%
+```
 
-## Installation
+## Quick Install
 
-### Step 1: Download the script
+```bash
+curl -fsSL https://raw.githubusercontent.com/skyconnfig/claude-statusline/main/statusline.sh \
+  -o ~/.claude/scripts/statusline.sh && \
+mkdir -p ~/.claude/scripts && \
+bash ~/.claude/scripts/statusline.sh --init
+```
+
+That's it! Restart Claude Code and you'll see the statusline.
+
+## Manual Installation
+
+### Step 1: Download
 
 ```bash
 git clone https://github.com/skyconnfig/claude-statusline.git
 ```
 
-Or simply copy `statusline.sh` to your preferred location, e.g.:
+Or copy `statusline.sh` to your preferred location:
 
 ```bash
 mkdir -p ~/.claude/scripts
@@ -58,9 +91,15 @@ Make it executable (Linux/macOS):
 chmod +x ~/.claude/scripts/statusline.sh
 ```
 
-### Step 2: Configure Claude Code
+### Step 2: Configure
 
-Edit your Claude Code `settings.json` (`~/.claude/settings.json`):
+**Automatic (recommended):**
+
+```bash
+bash statusline.sh --init
+```
+
+**Manual:** Edit `~/.claude/settings.json`:
 
 ```json
 {
@@ -84,32 +123,6 @@ Edit your Claude Code `settings.json` (`~/.claude/settings.json`):
 
 ### Step 3: Restart Claude Code
 
-The statusline will appear at the bottom of the terminal after restarting the session.
-
-## Screenshot
-
-Below is an example of what the statusline looks like in action:
-
-```
-Line 1 ──────────────────────────────────────────────────────────────
-Claude 200K v2.1.92 | claude-statusline (main) | +342 -87 lines | 3A | executor | NOR
-
-Line 2 ──────────────────────────────────────────────────────────────
-●●●●●●●●●●●●●●● 47% | $1.25 | 2m 05s | 5h 35% (2h 30m) | 7d 12% (5d 12h)
-[Green dots = healthy       ]
-
-Line 3 ──────────────────────────────────────────────────────────────
-cache 37% | in: 202.1K out: 45.0K | api wait 1m 35s (76%) | cur 12.5K in 8.3K read 1.2K write
-```
-
-### Context Bar Progressions
-
-```
-Low usage (green):          ●●○○○○○○○○○○○○● 15%
-Moderate usage (yellow):    ●●●●●●●○○○○○○○● 47%
-High usage (red):           ●●●●●●●●●●●●●●● 92%
-```
-
 ## How It Works
 
 Claude Code passes session metadata as JSON on stdin. The script parses it with `jq`, formats it with ANSI colors, and outputs 3 lines.
@@ -118,21 +131,16 @@ Claude Code passes session metadata as JSON on stdin. The script parses it with 
 Claude Code ──JSON──> statusline.sh ──ANSI text──> Terminal status bar
 ```
 
-The JSON input includes:
+## Prerequisites
 
-- `model.display_name` — Model name
-- `workspace.current_dir` — Current working directory
-- `cost.total_cost_usd` — Accumulated cost
-- `context_window.used_percentage` — Context window usage
-- `rate_limits.five_hour.*` / `rate_limits.seven_day.*` — Rate limit info
-- `context_window.total_input_tokens` — Total token counts
-- And more...
+- `bash` (Git Bash on Windows)
+- `jq` — JSON parser (`choco install jq` on Windows)
+- `git` — for branch and file stats
+- `awk` — for token formatting (included in most systems)
 
 ## Configuration
 
 ### Using a different shell path
-
-If `bash` is not in your `PATH`, use the full path:
 
 ```json
 {
@@ -164,21 +172,15 @@ Remove the `statusLine` key from `settings.json`, or set:
    ```
 3. Check `settings.json` for valid JSON syntax
 
-### `bc: command not found`
-
-This script uses `awk` instead of `bc` for token formatting. If you see `bc` errors, your version may be outdated — pull the latest.
-
 ### Colors not rendering
 
-Ensure your terminal supports ANSI escape sequences and is not set to `TERM=dumb`.
+Ensure your terminal supports ANSI escape sequences and is not set to `TERM=dumb`. Try `--format bare` for plain text.
 
 ### Rate limits / 5h / 7d not showing
 
 These fields are only present when rate limit data is provided by Claude Code. They appear when you are approaching your usage limits.
 
-## JSON Schema
-
-The full JSON schema received from Claude Code on stdin:
+## JSON Input Schema
 
 ```json
 {
