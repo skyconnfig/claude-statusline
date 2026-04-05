@@ -15,6 +15,44 @@ Claude 200K v2.1.92 | project (main) | +342 -87 lines | executor | NOR
 cache 37% | in: 202.1K out: 45.0K | api wait 1m 35s (76%) | cur 12.5K in 8.3K read 1.2K write
 ```
 
+## Screenshots
+
+### Demo GIF
+
+![Statusline Demo](assets/statusline-demo.gif)
+
+### Screenshot
+
+![Screenshot](assets/screenshot_2026-04-05_20-51-02.png)
+
+### Format Previews
+
+**Full Format:**
+```
+Claude 200K (main) | +342 -87 lines | executor | NOR
+●●●●●●●○○○○○○ 47% | $1.25 | 2m 05s | 5h 35% | 7d 12%
+cache 37% | in: 202.1K out: 45.0K | api wait 1m 35s (76%)
+```
+
+**Compact Format:**
+```
+Claude (main) | $1.25 | 2m 05s | 47% | +342 -87 | executor
+```
+
+**ASCII Format:**
+```
+Claude 200K (main) | +342 -87 lines | executor | NOR
+|||||||:::::::: 47% | $1.25 | 2m 05s | 5h 35% | 7d 12%
+cache 37% | in: 202.1K out: 45.0K | api wait 1m 35s (76%)
+```
+
+**Bare Format:**
+```
+Claude 200K (main) | +342 -87 lines | executor | NOR
+..........::::: 47% | $1.25 | 2m 05s | 5h 35% | 7d 12%
+cache 37% | in: 202.1K out: 45.0K | api wait 1m 35s (76%)
+```
+
 ## Features & Output Formats
 
 | Format | Command | Description |
