@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sed -i '142s/.*/    awk -v v=\"$t\" '\\\\''BEGIN{printf \"%.1fM\", v\\\\/1000000}'\\\\''/' statusline.sh)",
+      "Bash(sed -i '144s/.*/    awk -v v=\"$t\" '\\\\''BEGIN{printf \"%.1fK\", v\\\\/1000}'\\\\''/' statusline.sh)",
+      "Read(//c/Users/lixin/Desktop/statusline.sh/BEGIN{printf \"%.1fM\", v/**)",
+      "Read(//c/Users/lixin/Desktop/statusline.sh/BEGIN{printf \"%.1fK\", v/**)",
+      "Skill(update-config)",
+      "Bash(bash \"C:\\\\Users\\\\lixin\\\\Desktop\\\\statusline.sh\\\\statusline.sh\")"
+    ]
+  }
+}
