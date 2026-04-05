@@ -1,0 +1,3 @@
+[36m[1mClaude[0m [2m1M[0m [2mv2.1.92[0m[2m | [0m[37m]8;;https://github.com/skyconnfig/claude-statuslineclaude-statusline]8;;[0m [2m(main)[0m[2m | [0m[32m+342[0m[31m-87[0m [2mlines[0m[2m | [0m[32m8A[0m[2m | [0m[35mexecutor[0m
+[32m|[0m[32m|[0m[32m|[0m[32m|[0m[32m|[0m[32m|[0m[32m|[0m[2m:[0m[2m:[0m[2m:[0m[2m:[0m[2m:[0m[2m:[0m[2m:[0m[2m:[0m [2m47%[0m[2m | [0m[33m$1.25[0m[2m | [0m[2m2m 05s[0m[2m | [0m[2m5h[0m [32m35%[0m [2m(now)[0m[2m | [0m[2m7d[0m [32m12%[0m [2m(now)[0m
+[2mcache[0m [33m37%[0m[2m | [0m[2min:[0m [36m0.2M[0m [2mout:[0m [35m45.0K[0m[2m | [0m[2mapi wait[0m [36m1m 35s[0m [2m(76%)[2m | [0m[2mcur[0m 12.5K [2min[0m 8.3K [2mread[0m 1.2K [2mwrite[0m
